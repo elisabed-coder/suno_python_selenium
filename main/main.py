@@ -1,82 +1,208 @@
+import random
 import time
 import sqlite3
-from selenium.webdriver.support import expected_conditions as ec
-from selenium import webdriver
+import pyperclip
+from selenium.common import TimeoutException
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+# from hcaptcha_solver import hcaptcha_solver
+import undetected_chromedriver as uc
+from seleniumbase import SB, Driver
+
+def setup_driver():
+    driver = Driver(uc=True, undetected=True)
+    # options.add_argument(r"--user-data-dir=C:\Users\barat\AppData\Local\Google\Chrome for Testing\User Data")
+    # options.add_argument("--profile-directory=Eli")
+    driver.maximize_window()
+    driver.get("https://suno.com")
+
+    # options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    # options.add_experimental_option("useAutomationExtension", False)
+
+    driver.uc_open_with_reconnect("https://suno.com", reconnect_time=6)
+
+    return driver
+
+def wait_for_clickable(driver, xpath, timeout=15):
+    wait = WebDriverWait(driver, timeout)
+    return wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+
+def wait_for_presence(driver, xpath, timeout=30):
+    wait = WebDriverWait(driver, timeout)
+    return wait.until(EC.presence_of_element_located((By.XPATH, xpath)))
+
+def login_to_account(driver):
+    driver.get("https://suno.com")
+    sign_in_button = wait_for_clickable(driver, '/html/body/div[1]/div[1]/div/div[2]/div/div/div[1]/div/div[2]/div[1]/div/div[2]/button[1]')
+    time.sleep(random.uniform(2, 4))
+    sign_in_button.click()
+
+    # Wait for and click "Continue with Google" button
+    google_button = wait_for_clickable(driver, '/html/body/div[6]/div[1]/div/div/div/div[1]/div[2]/div[1]/div/button[3]')
+    time.sleep(random.uniform(2, 4))
+    google_button.click()
+    email_input = wait_for_presence(driver, '//*[@id="identifierId"]')
+    time.sleep(random.uniform(2, 4))
+    email_input.send_keys('elitesting001@gmail.com')
 
 
-options = webdriver.ChromeOptions()
+    # Click "Next" button
+    next_button = wait_for_clickable(
+        driver, '/html/body/div[1]/div[1]/div[2]/c-wiz/div/div[3]/div/div[1]/div/div/button')
+    time.sleep(random.uniform(2, 4))
+    next_button.click()
 
-# Use your actual profile path
-options.add_argument("user-data-dir=C:\\Users\\barat\\AppData\\Local\\Google\\Chrome\\User Data")
-options.add_argument("profile-directory=Profile 1")
+    password_input = wait_for_presence(driver, '/html/body/div[1]/div[1]/div[2]/c-wiz/div/div[2]/div/div/div[1]/form/span/section[2]/div/div/div[1]/div[1]/div/div/div/div/div[1]/div/div[1]/input')
+    time.sleep(random.uniform(2, 4))
+    password_input.send_keys('EliTesting01!')
+    login_button = wait_for_clickable(driver, '//*[@id="passwordNext"]/div/button')
+    time.sleep(random.uniform(2, 4))
+    login_button.click()
 
-# Add anti-detection flags BEFORE launching driver
-options.add_experimental_option("excludeSwitches", ["enable-automation"])
-options.add_experimental_option('useAutomationExtension', False)
+def click_create_song(driver):
+    create_button = wait_for_clickable(driver, '/html/body/div[1]/div[1]/div[1]/div[3]/a[2]')
+    time.sleep(random.uniform(2, 5))
+    create_button.click()
 
-# Optional: Make it a little more stealthy
-options.add_argument("--disable-blink-features=AutomationControlled")
+def select_auto_or_custom_button(driver):
+    auto_button_xpath = '//*[@id="main-container"]/div[1]/div/div[1]/div/div[3]/div/div/div/div/div[3]/div/div[2]/div[1]/div[1]/div/div/button[1]'
+    custom_button_xpath = '//*[@id="main-container"]/div[1]/div/div[1]/div/div[3]/div/div[1]/div/div/div[1]/button[2]'
 
-service = Service(ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service, options=options)
+    try:
+        # Try auto_button first
+        auto_button = wait_for_clickable(driver, auto_button_xpath)
+        time.sleep(random.uniform(1, 3))
+        auto_button.click()
+    except TimeoutException:
+        print("Auto button not found, clicking custom button first...")
 
-driver.get("https://suno.com")
-create_button = WebDriverWait(driver, 10).until(
-    ec.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[1]/div[1]/div[3]/a[2]/span')))
-create_button.click()
-custom_button = WebDriverWait(driver, 10).until(
-    ec.presence_of_element_located(
-        (By.XPATH, '//*[@id="main-container"]/div[1]/div/div[1]/div/div[2]/div/div[1]/div/div/div[1]/button[2]')))
-if "bg-white" not in custom_button.get_attribute("class"):
-    custom_button.click()
-    print("Clicked on the custom button (was not selected).")
-else:
-    print("Custom button is already selected.")
-auto_button = WebDriverWait(driver, 40).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="main-container"]/div[1]/div/div[1]/div/div[2]/div/div/div/div/div[3]/div/div[2]/div[1]/div[1]/div/div/button[1]')))
-auto_button.click()
-lyrics_input = WebDriverWait(driver, 10).until(
-    ec.presence_of_element_located((
-        By.XPATH,'//*[@id="main-container"]/div[1]/div/div[1]/div/div[2]/div/div/div/div/div[3]/div/div[2]/div[1]/div[2]/div/textarea'))
-)
-lyrics_input.send_keys("lets generate new ai song")
-create_song_button = WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="main-container"]/div[1]/div/div[1]/div/div[3]/div[2]/button')))
-create_song_button.click()
-time.sleep(10)
-song_links = WebDriverWait(driver, 60).until(
-    ec.presence_of_all_elements_located((By.XPATH, '//a[contains(@href, "/song/")]'))
-)
+        # Click custom_button
+        custom_button = wait_for_clickable(driver, custom_button_xpath)
+        time.sleep(random.uniform(2, 4))
+        custom_button.click()
 
-WebDriverWait(driver, 20).until(
-    ec.invisibility_of_element_located((By.XPATH, '//div[@style and contains(@style, "opacity: 0.05")]'))
-)
-
-# Now safely click the last link
-song_links[-1].click()
-get_title = WebDriverWait(driver, 50).until(ec.presence_of_element_located((By.XPATH, '//*[@id="main-container"]/div[1]/div[1]/div[2]/div[1]/input')))
+        # Try auto_button again
+        auto_button = wait_for_clickable(driver, auto_button_xpath)
+        time.sleep(random.uniform(1, 2))
+        auto_button.click()
 
 
-share_link = WebDriverWait(driver, 20).until(
-    ec.presence_of_element_located((By.CSS_SELECTOR, '#main-container > div.bg-background-primary.w-full.h-full.flex.flex-col.items-stretch.overflow-y-scroll.md\:px-4 > div.\@container.flex.flex-row.items-start.justify-stretch.gap-4.md\:pt-8.pb-8.max-md\:flex-col > div.relative.flex-1.flex.flex-col.gap-2.self-stretch.max-md\:px-4 > div.focus-within\:\[\&\>input\]\:border-primary.w-full.font-serif.font-light.text-foreground-primary.text-\[40px\]\/\[56px\] > input'))
-)
-prompt_text = WebDriverWait(driver, 20).until(ec.presence_of_element_located((By.CSS_SELECTOR,'#main-container > div.bg-background-primary.w-full.h-full.flex.flex-col.items-stretch.overflow-y-scroll.md\:px-4 > div.px-6.md\:px-0.w-full.flex-1.pb-48.flex.flex-col > div:nth-child(2) > div:nth-child(1) > section > div.font-sans.text-primary > p')))
+def handle_cloudflare_turnstile(driver, max_wait=90):
+    try:
+        # Step 1: Wait for iframe (if captcha appears)
+        WebDriverWait(driver, 10).until(
+            EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@title, 'captcha')]"))
+        )
+        print("🛡 hCaptcha iframe found. Waiting for solve...")
 
-title = get_title.text
-prompt = prompt_text.text
-url = ''
-print(title, url, prompt)
+        # Step 2: Wait inside iframe until captcha is solved
+        WebDriverWait(driver, max_wait).until_not(
+            EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'prompt-text')]"))
+        )
+        print("✅ Captcha solved!")
 
-# Insert into SQLite
-# conn = sqlite3.connect('suno_db.db')
-# c = conn.cursor()
-# c.execute("INSERT INTO songs (title, prompt, url) VALUES (?, ?, ?)", (title, prompt, url))
-# conn.commit()
-# conn.close()
-# print(f"Logged to database: {title}, {url}")
+        # Step 3: Switch back to main content
+        driver.switch_to.default_content()
+
+    except TimeoutException:
+        print("✅ No captcha detected or solved already. Continuing...")
 
 
 
-time.sleep(50)
+def enter_prompt_and_create(driver, prompt_text):
+    textarea_xpath = '//*[@id="main-container"]/div[1]/div/div[1]/div/div[3]/div/div/div/div/div[3]/div/div[2]/div[1]/div[2]/div/textarea'
+    button_xpath = '//*[@id="main-container"]/div[1]/div/div[1]/div/div[4]/div[2]/button'
+    textarea = wait_for_clickable(driver, textarea_xpath)
+    time.sleep(random.uniform(2, 5))
+    textarea.send_keys(prompt_text)
+
+    button = wait_for_clickable(driver, button_xpath)
+    time.sleep(random.uniform(2, 5))
+    button.click()
+    handle_cloudflare_turnstile(driver)
+
+
+def go_to_library_and_open_song(driver):
+    library_xpath = '/html/body/div[1]/div[1]/div[1]/div[3]/a[3]'
+    songs_container_xpath = '//div[contains(@id, "tabpanel-songs")]'
+    target_a_xpath = songs_container_xpath + '//a'
+
+    # Step 1: Click Library button
+    library_button = wait_for_clickable(driver, library_xpath)
+    time.sleep(random.uniform(45, 75))
+    library_button.click()
+
+    time.sleep(random.uniform(2, 5))  # wait for page update
+
+    # Step 2: Wait for container to be present
+    wait_for_presence(driver, songs_container_xpath, timeout=30)
+
+    # Step 3: Find all <a> tags deeply inside container
+    all_links = driver.find_elements(By.XPATH, target_a_xpath)
+
+    if all_links:
+        first_a = all_links[0]
+
+        # Scroll into view
+        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", first_a)
+        time.sleep(random.uniform(1, 2))
+
+        # Try to click safely
+        try:
+            first_a.click()
+        except Exception:
+            driver.execute_script("arguments[0].click();", first_a)
+    else:
+        print("No <a> tags found inside container!")
+
+
+
+
+def get_song_info(driver):
+    title_xpath = '//*[@id="main-container"]/div[1]/div[1]/div[2]/div[1]/input'
+    prompt_xpath = '//*[@id="main-container"]/div[1]/div[2]/div[1]/div[1]/section/div[1]/p'
+    share_button_xpath = '//*[@id="main-container"]/div[1]/div[1]/div[2]/div[5]/div[2]/button[2]'
+
+    title_input = wait_for_presence(driver, title_xpath, timeout=30)
+    time.sleep(random.uniform(4, 8))
+    title = title_input.get_attribute("value")
+
+    share_button = wait_for_clickable(driver, share_button_xpath)
+    share_button.click()
+    time.sleep(random.uniform(2, 4))
+    url = pyperclip.paste()
+
+    prompt_element = wait_for_presence(driver, prompt_xpath)
+    prompt = prompt_element.text
+
+    return title, prompt, url
+
+def save_to_db(title, prompt, url):
+    conn = sqlite3.connect('suno_db.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO songs (title, prompt, url) VALUES (?, ?, ?)", (title, prompt, url))
+    conn.commit()
+    conn.close()
+    print(f"Saved to DB: {title}, {url}, {prompt}")
+
+
+
+# MAIN RUN
+try:
+    driver = setup_driver()
+    login_to_account(driver)
+    click_create_song(driver)
+    select_auto_or_custom_button(driver)
+    enter_prompt_and_create(driver, "I was sitting in the room alone, it was dark, suddenly I see leaning on the stick mother coming through the wall.")
+    go_to_library_and_open_song(driver)
+    title, prompt, url = get_song_info(driver)
+    print("Title:", title)
+    print("URL:", url)
+    print("Prompt:", prompt)
+    save_to_db(title, prompt, url)
+finally:
+	driver.quit()
+
